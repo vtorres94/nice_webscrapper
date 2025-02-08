@@ -3,6 +3,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import traceback
+import time
 
 
 def scrapper():
@@ -36,12 +38,39 @@ def scrapper():
 
                 all_products.append(p)
 
+        for product in all_products:
+            product['description'] = get_description(driver, product['code'])
+
         save_products(all_products)
         save_to_csv(all_products)
 
     except Exception as e:
         print('Error: ', e)
+        traceback.print_exc()
         driver.quit()
+
+
+def get_description(driver, code):
+
+    try:
+
+        driver.get(
+            f"https://www.niceonline.com/corp/Products/ItemDetail?sItemSecondCode={code}"
+        )
+
+        time.sleep(1)
+
+        description = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located(
+                (By.CSS_SELECTOR, "#site-content > section > div.container.d-none.d-lg-block > div.row.mt-5 > div:nth-child(2) > div > div.item-desc.mt-5 > p"))
+        )
+
+        return description.text
+
+    except Exception as e:
+        print('Error: ', e)
+        traceback.print_exc()
+        return ''
 
 
 def save_products(products):
@@ -54,10 +83,10 @@ def save_to_csv(products):
     import csv
     with open('products.csv', mode='w') as file:
         writer = csv.writer(file)
-        writer.writerow(['Name', 'Code', 'Price', 'Image'])
+        writer.writerow(['Name', 'Code', 'Price', 'Image', 'Description'])
         for product in products:
             writer.writerow([product['name'], product['code'],
-                            product['price'], product['image']])
+                            product['price'], product['image'], product['description']])
 
 
 scrapper()
